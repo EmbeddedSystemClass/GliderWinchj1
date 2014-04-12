@@ -10,4 +10,6 @@ This routine associates with github repos: GliderWinch, HostManager.
 This routine connects as a client to a socket and expects ascii/hex newline-terminated lines with CAN messages, sent by a gateway, e.g. see GliderWinch.
 
 Usage: java -jar CanDemo.jar [ip address] [port]
+default: ip = 127.0.0.1 port = 32123
+
 
