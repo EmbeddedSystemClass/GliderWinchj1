@@ -88,10 +88,10 @@ public class CanDemo {
         tim0 = can1.get_1long(); // Yes. Convert payload to a long
         if (tim0 > 0){        // Was the conversion good?
             if ((tim0 & 0x3f) == 0){ /* Is this 64/sec time tick an even seconds tick? */
-            /* Yes.  Shift to conver 1/64th ticks to secs, and  add Epoch shift */        
+            /* Yes.  Shift to conver 1/64th ticks to secs, and  add Epoch shift */ 
                 unixTime = (tim0 >> 6) + 1318478400;
                 java.util.Date time=new java.util.Date(unixTime*1000); // Convert to printble format
-  //              System.out.println(time.toString());   // Pretty printout
+                System.out.println(time.toString());   // Pretty printout
             }
         } else{
                 System.out.format("TIME CONVERT ERR %s\n",msg); // Argh!
@@ -110,12 +110,13 @@ public class CanDemo {
             eng[2] = nta[0];   // Save the values if we want it later
             eng[3] = nta[1];
  //           System.out.format("[2]:%08x " + "[3]:%08x " + "%s\n", eng[2], eng[3], msg);
-            System.out.format("eng[0]:%08x " + "eng[1]:%08x " + "eng[2]:%08x " + "eng[3]:%08x " + "%s\n", eng[0], eng[1], eng[2], eng[3], msg);
+ //           System.out.format("eng[0]:%08x " + "eng[1]:%08x " + "eng[2]:%08x " + "eng[3]:%08x " + "%s\n", eng[0], eng[1], eng[2], eng[3], msg);
  //           System.out.format("%d\n", eng[1]);
             short[] sta;
                 sta = new short[4];
             sta = can1.get_shorts();
     }
+        
         
     /* Select, extract, and convert shaft encoder and rpm to two ints */
     if (can1.id == 0x31e00000){ /* Is this CAN ID an engine sensor message? */
@@ -134,7 +135,7 @@ public class CanDemo {
                 can2.dlc = 8;           // Payload count
                 can2.pb = can1.pb;      // Copy the payload from the incoming can msg
                 // Note: pb[0] is the seq number, and will be the one received with can1 
-                xmt_msg = can2.out_prep();  // Convert to ascii/hex with checksum
+                xmt_msg = can2.msg_prep();  // Convert to ascii/hex with checksum
 //                System.out.format("xmt_msg: length %d: " + "%s",xmt_msg.length(),xmt_msg);// Look at msg
                 out.write(xmt_msg,0,xmt_msg.length());  // Send the msg to the socket
                 out.flush();  // DO NOT FORGET THIS !  Otherwise the msgs pile up until a buffer fills.

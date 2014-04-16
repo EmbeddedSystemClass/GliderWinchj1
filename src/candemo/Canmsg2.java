@@ -29,6 +29,7 @@ public class Canmsg2 {
     
     public byte[] pb;// Binary bytes as received and converted from ascii/hex input
     public int chk; // Byte checksum
+    public int val; // After a conversion: Zero = no error; not zero = error
    
     
 //    private int p0;  // Assembled Integer of payload bytes [0]-[3]
@@ -40,16 +41,16 @@ public class Canmsg2 {
     * Constructors
     * ********************************************************************* */
     public Canmsg2(){
-        seq = 0; id = 0; dlc = 0; pb = new byte[15]; 
-        
+        seq = 0; id = 0; dlc = 0; pb = new byte[15];  val = 0;
     }
     public Canmsg2(int iseq, int iid){
-        seq = iseq; id = iid; pb = new byte[15]; 
-        
+        seq = iseq; id = iid; pb = new byte[15]; val = 0;
     }
     public Canmsg2(int iseq, int iid, int idlc){
-        seq = iseq; id = iid; dlc = idlc; pb = new byte[15]; 
-        
+        seq = iseq; id = iid; dlc = idlc; pb = new byte[15]; val = 0;
+    }
+    public Canmsg2(int iseq, int iid, int idlc, byte[] px){
+        seq = iseq; id = iid; dlc = idlc; pb = new byte[15]; pb = px;val = 0;
     }
     /* *************************************************************************
     Compute CAN message checksum on binary array
@@ -68,10 +69,8 @@ public class Canmsg2 {
           chktot += (chktot >> 16); // Add carry from above addition
           chktot += (chktot >> 8);  // Add carries from low byte
           chktot += (chktot >> 8);  // Add carry from above addition  
-          chktot = chktot & 0xff;   // Checksum is a byte
           return (byte)chktot;
       }    
-
       /** *********************************************************************
     * Check message for errors and Convert incoming ascii/hex CAN msg to an array of bytes
     *   plus assemble the bytes comprising CAN ID into an int.
@@ -98,7 +97,8 @@ public class Canmsg2 {
     /* Check computed checksum versus recieved checksum.  */
     byte chkx = checksum((m/2) - 1);
     if (chkx != pb[((m/2)-1)]){ 
-        System.out.println(msg);    // Display for debugging
+        /* System.out is for debugging */
+        System.out.println(msg);
         for (int j = 0; j < (m/2); j++){
            System.out.format("%02X ",pb[j]);
         }
@@ -113,7 +113,7 @@ public class Canmsg2 {
     /* Extract some items that are of general use */
     seq = (pb[0] & 0xff);     // Sequence number
     dlc = (pb[5] & 0xff);     // Save payload ct in an easy to remember variable
-    id = (((((((pb[4] & 0xff) << 8) | (pb[3] & 0xff)) << 8) | (pb[2] & 0xff)) << 8) | pb[1]);
+    id = ((((((pb[4] << 8) | (pb[3] & 0xff)) << 8) | (pb[2] & 0xff)) << 8) | (pb[1] & 0xff));
    
     return 0;
    }
@@ -125,8 +125,8 @@ public class Canmsg2 {
     *       int
     */
    public int get_1int(int offset){
-       if ( pb[5] < (offset+4) ) return 0; // Return not enough payload
-        return (((((((pb[(offset+9)] & 0xff) << 8) | (pb[(offset+8)] & 0xff)) << 8) | (pb[(offset+7)] & 0xff)) << 8) | (pb[(offset+6)] & 0xff));
+       if ( pb[5] < (offset+4) ){val = -1; return 0;} // Return not enough payload
+       return (((((((pb[(offset+9)]) << 8) | (pb[(offset+8)] & 0xff)) << 8) | (pb[(offset+7)] & 0xff)) << 8) | (pb[(offset+6)] & 0xff));
    }
     /**
      * Convert bytes to an int array
@@ -134,24 +134,20 @@ public class Canmsg2 {
      */
    public int[] get_2int(){
        int[] nt2 = {0,0};
-       if (pb[5] < 8) return nt2;   // Return: not enough payload bytes
+       if (pb[5] < 8) {val = -1; return nt2;}   // Return: not enough payload bytes
         nt2[0] = (((((((pb[ 9] & 0xff) << 8) | (pb[ 8] & 0xff)) << 8) | (pb[ 7] & 0xff)) << 8) | (pb[ 6] & 0xff));
         nt2[1] = (((((((pb[13] & 0xff) << 8) | (pb[12] & 0xff)) << 8) | (pb[11] & 0xff)) << 8) | (pb[10] & 0xff));
         return nt2;
    }
    /**
-    * @return
-    *    Combine payload bytes [0]-[7] to one long 
+    * Combine payload bytes [0]-[7] to one long 
     */
    public long get_1long(){
-       if (pb[5] != 8) return 0; // Return: not enough payload bytes
-       {
-           int x0; int x1;  long xl;
-        x0 = (((((((pb[ 9] & 0xff) << 8) | (pb[ 8] & 0xff)) << 8) | (pb[ 7] & 0xff)) << 8) | (pb[ 6] & 0xff));
-        x1 = (((((((pb[13] & 0xff) << 8) | (pb[12] & 0xff)) << 8) | (pb[11] & 0xff)) << 8) | (pb[10] & 0xff));
-        xl = x1;     // Convert high order int to long
-        return ( (xl << 32) | x0); // Combine to make a long
-       }
+       if (pb[5] != 8){ val = -1; return 0;}
+        int p0  = (((((((pb[ 9] & 0xff) << 8) | (pb[ 8] & 0xff)) << 8) | (pb[ 7] & 0xff)) << 8) | (pb[ 6] & 0xff));
+        int p1 = (((((((pb[13] & 0xff) << 8) | (pb[12] & 0xff)) << 8) | (pb[11] & 0xff)) << 8) | (pb[10] & 0xff));
+        long pl = ( ((long)p1 << 32) | (p0 & 0xffffffffL) ); // Combine to make a long
+       return pl;
    }
    /**
     * 
@@ -184,17 +180,17 @@ public class Canmsg2 {
      * @return 
      *   String with ascii/hex in ready to send
     */
-    public String out_prep(){  // Convert payload bytes from byte array
+    public String msg_prep(){  // Convert payload bytes from byte array
         
        /* A return of 'null' indicates an error */
        if (dlc > 8) return null;
        if (dlc < 0) return null;
        
        /* Setup Id bytes, little endian */
-       pb[1] = (byte)(id & 0xff);
-       pb[2] = (byte)((id >>  8) & 0xff);
-       pb[3] = (byte)((id >> 16) & 0xff);
-       pb[4] = (byte)((id >> 24) & 0xff);
+       pb[1] = (byte)(id);
+       pb[2] = (byte)((id >>  8));
+       pb[3] = (byte)((id >> 16));
+       pb[4] = (byte)((id >> 24));
        
        pb[5] = (byte)dlc;    // Payload size
        
@@ -209,51 +205,43 @@ public class Canmsg2 {
        return x.toString();
     }
    /**
-    * @param big endian int to be stored in byte array little endian
-    * Convert to payload byte array little endian.
-    * Set dlc to 4.
-    * ********************************************************************* */
-    private void out_int0(int n){
-        pb[6] = (byte)(n & 0xff);
-        pb[7] = (byte)((n >>  8) & 0xff);
-        pb[8] = (byte)((n >> 16) & 0xff);
-        pb[9] = (byte)((n >> 24) & 0xff);
+    * Convert to payload byte array little endian
+    */
+    public void set_int0(int n){
+        pb[6] = (byte)(n);
+        pb[7] = (byte)((n >>  8));
+        pb[8] = (byte)((n >> 16));
+        pb[9] = (byte)((n >> 24));
         dlc = 4;   // set payload count (dlc)
     }
    /**
-    * @param  Big endian int.
     * Convert to payload byte array little endian
-    * Set dlc to 8
     */
-    private void out_int1(int n){
-        pb[10] = (byte)(n & 0xff);
-        pb[11] = (byte)((n >>  8) & 0xff);
-        pb[12] = (byte)((n >> 16) & 0xff);
-        pb[13] = (byte)((n >> 24) & 0xff);
+    public void set_int1(int n){
+        pb[10] = (byte)(n);
+        pb[11] = (byte)((n >>  8));
+        pb[12] = (byte)((n >> 16));
+        pb[13] = (byte)((n >> 24));
         dlc = 8;   // set payload count (dlc)
     }
    /**
-    * @param Big endian long.
     * Convert long to payload byte array little endian
-    * Set dlc to 8
-    * ********************************************************************* */
-    private void out_1long(long l){
-        pb[ 6] = (byte)( l & 0xff);
-        pb[ 7] = (byte)((l >>  8) & 0xff);
-        pb[ 8] = (byte)((l >> 16) & 0xff);
-        pb[ 9] = (byte)((l >> 24) & 0xff);
-        pb[10] = (byte)((l >> 32) & 0xff);
-        pb[11] = (byte)((l >> 40) & 0xff);
-        pb[12] = (byte)((l >> 48) & 0xff);
-        pb[13] = (byte)((l >> 56) & 0xff);
+    */
+    public void set_1long(long l){
+        pb[ 6] = (byte)( l       );
+        pb[ 7] = (byte)((l >>  8));
+        pb[ 8] = (byte)((l >> 16));
+        pb[ 9] = (byte)((l >> 24));
+        pb[10] = (byte)((l >> 32));
+        pb[11] = (byte)((l >> 40));
+        pb[12] = (byte)((l >> 48));
+        pb[13] = (byte)((l >> 56));
         dlc = 8;   // set payload count (dlc)
     }
    /**
-    * @param Short[] s holds shorts to be stored in payload, little endian
     * Convert shorts to payload byte array, little endian 
-    * @return false: array length doesn't accommodate payload count
     */
-    private boolean out_nshort(Short[] s){
+    private boolean set_nshort(Short[] s){
         int x;
         x = s.length;
         if (x == 0){    // JIC
@@ -263,11 +251,10 @@ public class Canmsg2 {
         if (x > 4) return false;    // Oops!
         
         for (int i = 0; i < x; x += 1){
-            pb[((2*i) + 6)] = (byte)((s[i] >> 8) & 0xff);
+            pb[((2*i) + 6)] = (byte)((s[i] >> 8));
             pb[((2*i) + 7)] = (byte)(s[i] & 0xff);
         }
         dlc = (x * 2);  // Set payload size
         return true;
     }
-    
 }
