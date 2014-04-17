@@ -39,22 +39,14 @@ public class CanCnvt
      * ********************************************************************* */
     public CanCnvt()
     {
-
-        val = 0;    // Initialize as valid
-        seq = 0;
-        id = 0;
-        dlc = 0;
-        pb = new byte[15];
-
+            pb = new byte[15];
     }
 
     public CanCnvt(int iseq, int iid)
     {
-        val = 0;    // Initialize as valid
         seq = iseq;
         id = iid;
         pb = new byte[15];
-
     }
 
     public CanCnvt(int iseq, int iid, int idlc)
@@ -66,13 +58,21 @@ public class CanCnvt
         pb = new byte[15];
 
     }
+    public CanCnvt(int iseq, int iid, int idlc, byte[] px)
+    {
+        val = 0;    // Initialize as valid
+        seq = iseq;
+        id = iid;
+        dlc = idlc;
+        pb = new byte[15]; pb = px;
+
+    }
     /* *************************************************************************
      Compute CAN message checksum on binary array
      param   : byte[] b: Array of binary bytes in check sum computation\
      param   : int m: Number of bytes in array to use in computation
      return  : computed checksum 
      ************************************************************************ */
-
     private byte checksum(int m)
     {
         /* Convert pairs of ascii/hex chars to a binary byte */
@@ -86,20 +86,21 @@ public class CanCnvt
         chktot += (chktot >> 16); // Add carry from above addition
         chktot += (chktot >> 8);  // Add carries from low byte
         chktot += (chktot >> 8);  // Add carry from above addition  
-        chktot = chktot & 0xff;   // Checksum is a byte
         return (byte) chktot;
     }
 
     /**
-     * *********************************************************************
-     * Check message for errors and Convert incoming ascii/hex CAN msg to an
-     * array of bytes plus assemble the bytes comprising CAN ID into an int.
+     * Check message for errors and Convert incoming ascii/hex CAN msg
+     * to an array of bytes plus assemble the bytes comprising CAN ID 
+     * into an int.
      *
      * @param msg msg = String with ascii/hex of a CAN msg
-     * @return * Return: 0 = OK; -1 = message too short (less than 14) -2 =
-     * message too long (greater than 30) -3 = number of bytes not even -4 =
-     * payload count is negative or greater than 8 -5 = checksum error
-     * *********************************************************************
+     * @return * Return: 
+     *  0 = OK; 
+     * -1 = message too short (less than 14) 
+     * -2 = message too long (greater than 30) 
+     * -3 = number of bytes not even 
+     * -4 = payload count is negative or greater than 8 -5 = checksum error
      */
     public int convert_msgtobin(String msg)
     {
@@ -143,18 +144,17 @@ public class CanCnvt
             return -4;    // Too large means something wrong.
         }
         /* Extract some items that are of general use */
-        seq = (pb[0] & 0xff);     // Sequence number
+        seq = (pb[0] & 0xff);     // Sequence number byte->unsigned
         dlc = (pb[5] & 0xff);     // Save payload ct in an easy to remember variable
         id = ((((((pb[4] << 8) | (pb[3] & 0xff)) << 8)
                 | (pb[2] & 0xff)) << 8) | (pb[1] & 0xff));
-
         return 0;
     }
 
     /**
      * Extract long from payload
      *
-     * @return payload bytes [0]-[7] to one long
+     * @return payload bytes [0]-[7] as one long
      */
     public long get_long()
     {
@@ -169,11 +169,11 @@ public class CanCnvt
             int x1 = ((((((pb[13] << 8) | (pb[12] & 0xff)) << 8)
                     | (pb[11] & 0xff)) << 8) | (pb[10] & 0xff));
             // Combine to make a long
-            long lng = (long) x1 << 32 | (((long) x0) & 0x0000ffff);
+            long lng = ((long)x1 << 32) | (((long) x0) & 0x0000ffffL);
+            val = 0;
             return lng;
         }
     }
-
     /**
      * Extract four payload bytes to an int,
      *
@@ -192,10 +192,10 @@ public class CanCnvt
                     | (pb[offset + 8] & 0xff)) << 8)
                     | (pb[offset + 7] & 0xff)) << 8)
                     | (pb[offset + 6] & 0xff));
+            val = 0;
             return nt;
         }
     }
-
     /**
      * Convert bytes to an int array
      *
@@ -220,6 +220,7 @@ public class CanCnvt
                         | (pb[i4o + 7] & 0xff)) << 8)
                         | (pb[i4o + 6] & 0xff));
             }
+            val = 0;
             return nt;
         }
     }
@@ -243,6 +244,7 @@ public class CanCnvt
                     | (pb[offset + 8] & 0xff)) << 8)
                     | (pb[offset + 7] & 0xff)) << 8)
                     | (pb[offset + 6] & 0xff);
+            val = 0;
             return lng;
         }
     }
@@ -256,16 +258,19 @@ public class CanCnvt
      */
     public short get_short(int offset)
     {
+        short st;
         if (pb[5] < (offset + 2))
         {
             val = -1;   // insufficient payload length
             return 0;
         } else
         {
-            short st = (short) ((pb[offset + 7] << 8)
+            st = (short) ((pb[offset + 7] << 8)
                     | (pb[offset + 6] & 0xff));
-            return st;
         }
+        val = 0;
+        return st;
+
     }
 
     /**
@@ -291,6 +296,7 @@ public class CanCnvt
                 sh[i] = (short) ((pb[i2o + 7] << 8)
                         | (pb[i2o + 6] & 0xff));
             }
+            val = 0;
             return sh;
         }
     }
@@ -326,21 +332,25 @@ public class CanCnvt
      */
     public int[] get_ushorts(int offset, int numb)
     {
+        int[] ust = new int[numb];
         if (pb[5] < offset + numb * 2)
         {
             val = -1;   // insufficient payload length
             return new int[0];
         } else
         {
-            int[] ust = new int[numb];
+            
             for (int i = 0; i < numb; i++)
             {
                 int i2o = i * 2 + offset;
                 ust[i] = ((pb[i2o + 7] & 0xff) << 8)
                         | (pb[i2o + 6] & 0xff);
+           
             }
-            return ust;
         }
+        val = 0;
+        return ust;
+
     }
 
     /**
@@ -359,6 +369,7 @@ public class CanCnvt
         } else
         {
             byte by = pb[offset + 6];
+            val = 0;
             return by;
         }
     }
@@ -384,6 +395,7 @@ public class CanCnvt
             {
                 by[i] = pb[offset + 6];
             }
+            val = 0;
             return by;
         }
     }
@@ -429,6 +441,7 @@ public class CanCnvt
                 int ipo = offset + i;
                 sh[i] = (short) (pb[ipo + 6] & 0xff);
             }
+            val = 0;
             return sh;
         }
     }
@@ -457,6 +470,7 @@ public class CanCnvt
                         | (pb[i4o + 7] & 0xff)) << 8)
                         | (pb[i4o + 6] & 0xff);
             }
+            val = 0;
             return lng;
         }
     }
@@ -467,7 +481,7 @@ public class CanCnvt
      *
      * @return String with ascii/hex in ready to send
      */
-    public String out_prep()
+    public String msg_prep()
     {  // Convert payload bytes from byte array
 
         /* A return of 'null' indicates an error */
@@ -481,10 +495,10 @@ public class CanCnvt
         }
 
         /* Setup Id bytes, little endian */
-        pb[1] = (byte) (id & 0xff);
-        pb[2] = (byte) ((id >> 8) & 0xff);
-        pb[3] = (byte) ((id >> 16) & 0xff);
-        pb[4] = (byte) ((id >> 24) & 0xff);
+        pb[1] = (byte) (id        );
+        pb[2] = (byte) ((id >> 8) );
+        pb[3] = (byte) ((id >> 16));
+        pb[4] = (byte) ((id >> 24));
 
         pb[5] = (byte) dlc;    // Payload size
 
@@ -511,10 +525,10 @@ public class CanCnvt
             val = -1;   //  offset too large
         } else
         {
-            pb[6 + offset] = (byte) (n & 0xff);
-            pb[7 + offset] = (byte) ((n >> 8) & 0xff);
-            pb[8 + offset] = (byte) ((n >> 16) & 0xff);
-            pb[9 + offset] = (byte) ((n >> 24) & 0xff);
+            pb[6 + offset] = (byte) (n        );
+            pb[7 + offset] = (byte) ((n >> 8) );
+            pb[8 + offset] = (byte) ((n >> 16));
+            pb[9 + offset] = (byte) ((n >> 24));
         }
     }
 
@@ -529,14 +543,15 @@ public class CanCnvt
             val = -1;   //  should only be used to insert two ints
         } else
         {
-            pb[6] = (byte) (n[0] & 0xff);
-            pb[7] = (byte) ((n[0] >> 8) & 0xff);
-            pb[8] = (byte) ((n[0] >> 16) & 0xff);
-            pb[9] = (byte) ((n[0] >> 24) & 0xff);
-            pb[10] = (byte) (n[1] & 0xff);
-            pb[11] = (byte) ((n[1] >> 8) & 0xff);
-            pb[12] = (byte) ((n[1] >> 16) & 0xff);
-            pb[13] = (byte) ((n[1] >> 24) & 0xff);
+            pb[ 6] = (byte) ( n[0]       );
+            pb[ 7] = (byte) ((n[0] >>  8));
+            pb[ 8] = (byte) ((n[0] >> 16));
+            pb[ 9] = (byte) ((n[0] >> 24));
+            pb[10] = (byte) ( n[1]       );
+            pb[11] = (byte) ((n[1] >>  8));
+            pb[12] = (byte) ((n[1] >> 16));
+            pb[13] = (byte) ((n[1] >> 24));
+            val = 0;
         }
     }
 
@@ -552,14 +567,15 @@ public class CanCnvt
             val = -1;
         } else
         {
-            pb[ 6] = (byte) (lng & 0xff);
-            pb[ 7] = (byte) ((lng >> 8) & 0xff);
-            pb[ 8] = (byte) ((lng >> 16) & 0xff);
-            pb[ 9] = (byte) ((lng >> 24) & 0xff);
-            pb[10] = (byte) ((lng >> 32) & 0xff);
-            pb[11] = (byte) ((lng >> 40) & 0xff);
-            pb[12] = (byte) ((lng >> 48) & 0xff);
-            pb[13] = (byte) ((lng >> 56) & 0xff);
+            pb[ 6] = (byte) (lng        );
+            pb[ 7] = (byte) ((lng >>  8));
+            pb[ 8] = (byte) ((lng >> 16));
+            pb[ 9] = (byte) ((lng >> 24));
+            pb[10] = (byte) ((lng >> 32));
+            pb[11] = (byte) ((lng >> 40));
+            pb[12] = (byte) ((lng >> 48));
+            pb[13] = (byte) ((lng >> 56));
+            val = 0;
         }
     }
 
@@ -568,30 +584,30 @@ public class CanCnvt
      * Convert shorts to payload byte array, little endian
      * @return false: array length doesn't accommodate payload count
      */
-    private boolean out_nshort(Short[] s)
+    private void set_nshort(Short[] s)
     {
         int x;
         x = s.length;
         if (x == 0)
         {    // JIC
             dlc = 0;
-            return true; // Set payload size and return
+            val = -1; return; // Set payload size and return
         }
         if (x < 0)
         {
-            return false;    // Should not be possible
+            val = -2; return;    // Should not be possible
         }
         if (x > 4)
         {
-            return false;    // Oops!
+            val = -3; return;    // Oops!
         }
         for (int i = 0; i < x; x += 1)
         {
-            pb[((2 * i) + 6)] = (byte) ((s[i] >> 8) & 0xff);
-            pb[((2 * i) + 7)] = (byte) (s[i] & 0xff);
+            pb[((2 * i) + 6)] = (byte) ((s[i] >>  8));
+            pb[((2 * i) + 7)] = (byte) ( s[i] & 0xff);
         }
         dlc = (x * 2);  // Set payload size
-        return true;
+        val = 0; return;
     }
 
 }

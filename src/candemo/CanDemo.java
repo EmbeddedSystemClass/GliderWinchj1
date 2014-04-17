@@ -50,12 +50,17 @@ public class CanDemo {
     Canmsg2 can1; int ret;
         can1 = new Canmsg2();    // Received CAN message
         
+    CanCnvt cvt1;   // Received CAN message
+        cvt1 = new CanCnvt();
+        
         int[] nta;
             nta = new int[2];
             
     Canmsg2 can2;                // Transmit CAN message
         can2 = new Canmsg2();
-     
+        
+    
+     int seqsend = 0;
         
     String xmt_msg;
     
@@ -78,6 +83,11 @@ public class CanDemo {
         System.out.format("Input conversion error: %d\n", ret); // No. Show the error code
         continue;
     }
+    ret = cvt1.convert_msgtobin(msg);
+    if (ret != 0){
+        System.out.format("Input conversion error: %d\n", ret); // No. Show the error code
+        continue;
+    }
 
 //    System.out.format("    %02X " + "%08X " + "%02X\n",can1.seq, can1.id, can1.dlc);
 //    System.out.format("%2d: " + "%s\n",msg.length(), msg);
@@ -85,7 +95,8 @@ public class CanDemo {
     
     /* Time sync message: Output date/time for 1/64th tick = 0. */
     if (can1.id == 0x00200000){ // Is this a time sync ID?
-        tim0 = can1.get_1long(); // Yes. Convert payload to a long
+        //tim0 = can1.get_1long(); 
+        tim0 = cvt1.get_long(); // Yes. Convert payload to a long
         if (tim0 > 0){        // Was the conversion good?
             if ((tim0 & 0x3f) == 0){ /* Is this 64/sec time tick an even seconds tick? */
             /* Yes.  Shift to conver 1/64th ticks to secs, and  add Epoch shift */ 
@@ -100,13 +111,15 @@ public class CanDemo {
     
     /* Select, extract, and convert the two CAN msgs that have two 4 bit ints, from the engine sensor */
     if (can1.id == 0x40800000){ /* Is this CAN ID an engine sensor message? */
-            nta = can1.get_2int();     // Convert payload to two ints
+//            nta = can1.get_2int();     // Convert payload to two ints
+            nta = cvt1.get_ints(0, 2);  //  Convert payload to two ints
             eng[0] = nta[0];   // Save the values if we want it later
-            eng[1] = nta[1];
+            eng[1] = nta[1];  
 //            System.out.format("P0:%08x " + "P1:%08x " + "%s\n", eng[0], eng[1], msg);
     }
         if (can1.id == 0x30800000){ /* Is this CAN ID the other engine sensor message? */
-            nta = can1.get_2int();     // Convert payload to two ints
+//            nta = can1.get_2int();     // Convert payload to two ints
+            nta = cvt1.get_ints(0, 2);  // Convert payload to two ints
             eng[2] = nta[0];   // Save the values if we want it later
             eng[3] = nta[1];
  //           System.out.format("[2]:%08x " + "[3]:%08x " + "%s\n", eng[2], eng[3], msg);
@@ -120,23 +133,27 @@ public class CanDemo {
         
     /* Select, extract, and convert shaft encoder and rpm to two ints */
     if (can1.id == 0x31e00000){ /* Is this CAN ID an engine sensor message? */
-            nta = can1.get_2int();     // Convert payload to two ints
+//            nta = can1.get_2int();     // Convert payload to two ints
+            nta = cvt1.get_ints(0, 2);  // Convert payload to two ints
             shft1_ct  = nta[0];   // Save the values if we want it later
             shft1_rpm = nta[1];
-//            System.out.format("shft1_ct:%08x " + "shft1_rpm:%08x " + "%s\n", shft1_ct, shft1_rpm, msg);
-//           System.out.format("shft1_ct:%5d "  + "shft1_rpm:%5d\n", shft1_ct, shft1_rpm);
+            System.out.format("shft1_ct:%08x " + "shft1_rpm:%08x " + "%s\n", shft1_ct, shft1_rpm, msg);
+//            System.out.format("shft1_ct:%5d "  + "shft1_rpm:%5d\n", shft1_ct, shft1_rpm);
             
             /* For a test periodically send a message with the same data that id 0x31e00000 sent. */
             msgctr += 1;    // Count the number of messages coming in.
             if (msgctr >= msgctr_next){ // Is it time to send one back?
-                msgctr_next = msgctr + 4;   // Set the next count to send count
+                msgctr_next = msgctr + 8;   // Set the next count to send count
                 /* Setup up a test msg to send */
+                CanCnvt cvt2 = new CanCnvt(seqsend,0x31e00004,8,can1.pb);
+//                CanCnvt cvt2 = new CanCnvt();
                 can2.id = 0x31e00004;   // Use this CAN id (29 bit)
                 can2.dlc = 8;           // Payload count
                 can2.pb = can1.pb;      // Copy the payload from the incoming can msg
                 // Note: pb[0] is the seq number, and will be the one received with can1 
-                xmt_msg = can2.msg_prep();  // Convert to ascii/hex with checksum
-//                System.out.format("xmt_msg: length %d: " + "%s",xmt_msg.length(),xmt_msg);// Look at msg
+//                xmt_msg = can2.msg_prep();  // Convert to ascii/hex with checksum
+                xmt_msg = cvt2.msg_prep();  // Convert to ascii/hex with checksum
+                System.out.format("xmt_msg: length %d: " + "%s",xmt_msg.length(),xmt_msg);// Look at msg
                 out.write(xmt_msg,0,xmt_msg.length());  // Send the msg to the socket
                 out.flush();  // DO NOT FORGET THIS !  Otherwise the msgs pile up until a buffer fills.
             }
