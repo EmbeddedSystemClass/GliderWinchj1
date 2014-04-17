@@ -51,7 +51,6 @@ public class CanCnvt
 
     public CanCnvt(int iseq, int iid, int idlc)
     {
-        val = 0;    // Initialize as valid
         seq = iseq;
         id = iid;
         dlc = idlc;
@@ -60,7 +59,6 @@ public class CanCnvt
     }
     public CanCnvt(int iseq, int iid, int idlc, byte[] px)
     {
-        val = 0;    // Initialize as valid
         seq = iseq;
         id = iid;
         dlc = idlc;
@@ -115,7 +113,7 @@ public class CanCnvt
         }
         if ((m & 0x1) != 0)
         {
-            return -3; // Not even: asci1: hex must be pairs
+            return -3; // Not even: asci1-hex must be in pairs
         }
         pb = DatatypeConverter.parseHexBinary(msg); // Convert ascii/hex to byte 
         // array
@@ -164,12 +162,14 @@ public class CanCnvt
             return 0;
         } else
         {
-            int x0 = (((((pb[9] << 8 | (pb[8] & 0xff)) << 8)
-                    | (pb[7] & 0xff)) << 8) | (pb[6] & 0xff));
-            int x1 = ((((((pb[13] << 8) | (pb[12] & 0xff)) << 8)
-                    | (pb[11] & 0xff)) << 8) | (pb[10] & 0xff));
+            int x0 = (((((
+                  (pb[ 9] <<          8) | (pb[ 8] & 0xff)) << 8) 
+                | (pb[ 7] & 0xff)) << 8) | (pb[ 6] & 0xff));
+            int x1 = (((((
+                  (pb[13] <<          8) | (pb[12] & 0xff)) << 8)
+                | (pb[11] & 0xff)) << 8) | (pb[10] & 0xff));
             // Combine to make a long
-            long lng = ((long)x1 << 32) | (((long) x0) & 0x0000ffffL);
+            long lng = ((long)x1 << 32) | (x0 & 0xffffffffL);
             val = 0;
             return lng;
         }
@@ -608,6 +608,9 @@ public class CanCnvt
         }
         dlc = (x * 2);  // Set payload size
         val = 0; return;
+    }
+    public void valerr(){
+        if (val != 0) System.out.format("CanCnvt val err: %d\n",val);
     }
 
 }
