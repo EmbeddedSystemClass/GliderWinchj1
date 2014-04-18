@@ -171,5 +171,4 @@ public class CanDemo {
     
     } // End of endless while loop
     }
-    
 }
