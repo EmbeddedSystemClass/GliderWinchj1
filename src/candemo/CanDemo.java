@@ -22,8 +22,8 @@ public class CanDemo {
      * @param args the command line arguments
      * @throws java.io.IOException
      */
-    public static void main(String[] args) throws IOException {
-      String ip;
+    public static void main(String[] args) throws IOException {        
+        String ip;
         ip = "127.0.0.1";   // Default ip address
         //String ip = new String("10.1.1.80");
         int port = new Integer (32123); // Default port

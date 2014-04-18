@@ -6,6 +6,7 @@
 package candemo;
 
 import javax.xml.bind.DatatypeConverter;
+import java.lang.Math;
 
 /**
  * CAN message
@@ -39,7 +40,7 @@ public class CanCnvt
      * ********************************************************************* */
     public CanCnvt()
     {
-            pb = new byte[15];
+        pb = new byte[15];
     }
 
     public CanCnvt(int iseq, int iid)
@@ -57,12 +58,14 @@ public class CanCnvt
         pb = new byte[15];
 
     }
+
     public CanCnvt(int iseq, int iid, int idlc, byte[] px)
     {
         seq = iseq;
         id = iid;
         dlc = idlc;
-        pb = new byte[15]; pb = px;
+        pb = new byte[15];
+        pb = px;
 
     }
     /* *************************************************************************
@@ -71,6 +74,7 @@ public class CanCnvt
      param   : int m: Number of bytes in array to use in computation
      return  : computed checksum 
      ************************************************************************ */
+
     private byte checksum(int m)
     {
         /* Convert pairs of ascii/hex chars to a binary byte */
@@ -88,17 +92,13 @@ public class CanCnvt
     }
 
     /**
-     * Check message for errors and Convert incoming ascii/hex CAN msg
-     * to an array of bytes plus assemble the bytes comprising CAN ID 
-     * into an int.
+     * Check message for errors and Convert incoming ascii/hex CAN msg to an
+     * array of bytes plus assemble the bytes comprising CAN ID into an int.
      *
      * @param msg msg = String with ascii/hex of a CAN msg
-     * @return * Return: 
-     *  0 = OK; 
-     * -1 = message too short (less than 14) 
-     * -2 = message too long (greater than 30) 
-     * -3 = number of bytes not even 
-     * -4 = payload count is negative or greater than 8 -5 = checksum error
+     * @return * Return: 0 = OK; -1 = message too short (less than 14) -2 =
+     * message too long (greater than 30) -3 = number of bytes not even -4 =
+     * payload count is negative or greater than 8 -5 = checksum error
      */
     public int convert_msgtobin(String msg)
     {
@@ -162,18 +162,17 @@ public class CanCnvt
             return 0;
         } else
         {
-            int x0 = (((((
-                  (pb[ 9] <<          8) | (pb[ 8] & 0xff)) << 8) 
-                | (pb[ 7] & 0xff)) << 8) | (pb[ 6] & 0xff));
-            int x1 = (((((
-                  (pb[13] <<          8) | (pb[12] & 0xff)) << 8)
-                | (pb[11] & 0xff)) << 8) | (pb[10] & 0xff));
+            int x0 = ((((((pb[ 9] << 8) | (pb[ 8] & 0xff)) << 8)
+                    | (pb[ 7] & 0xff)) << 8) | (pb[ 6] & 0xff));
+            int x1 = ((((((pb[13] << 8) | (pb[12] & 0xff)) << 8)
+                    | (pb[11] & 0xff)) << 8) | (pb[10] & 0xff));
             // Combine to make a long
-            long lng = ((long)x1 << 32) | (x0 & 0xffffffffL);
+            long lng = ((long) x1 << 32) | (x0 & 0xffffffffL);
             val = 0;
             return lng;
         }
     }
+
     /**
      * Extract four payload bytes to an int,
      *
@@ -196,6 +195,7 @@ public class CanCnvt
             return nt;
         }
     }
+
     /**
      * Convert bytes to an int array
      *
@@ -339,13 +339,13 @@ public class CanCnvt
             return new int[0];
         } else
         {
-            
+
             for (int i = 0; i < numb; i++)
             {
                 int i2o = i * 2 + offset;
                 ust[i] = ((pb[i2o + 7] & 0xff) << 8)
                         | (pb[i2o + 6] & 0xff);
-           
+
             }
         }
         val = 0;
@@ -495,8 +495,8 @@ public class CanCnvt
         }
 
         /* Setup Id bytes, little endian */
-        pb[1] = (byte) (id        );
-        pb[2] = (byte) ((id >> 8) );
+        pb[1] = (byte) (id);
+        pb[2] = (byte) ((id >> 8));
         pb[3] = (byte) ((id >> 16));
         pb[4] = (byte) ((id >> 24));
 
@@ -518,40 +518,42 @@ public class CanCnvt
      * payload byte array little endian offset
      * *********************************************************************
      */
-    public void set_int(int n, int offset)
+    public int set_int(int n, int offset)
     {
-        if ((offset > (dlc - 4)))
+        if (offset > 4)
         {
-            val = -1;   //  offset too large
+            return -1;
         } else
         {
-            pb[6 + offset] = (byte) (n        );
-            pb[7 + offset] = (byte) ((n >> 8) );
+            pb[6 + offset] = (byte) (n);
+            pb[7 + offset] = (byte) ((n >> 8));
             pb[8 + offset] = (byte) ((n >> 16));
             pb[9 + offset] = (byte) ((n >> 24));
+            dlc = Math.max(dlc, offset + 4);
+            return 0;
         }
     }
 
     /**
-     * @param Big endian int. Convert to payload byte array little endian Set
-     * dlc to 8
+     * @param ns  Big endian int. Convert to payload byte array little endian
      */
-    public void set_ints(int[] n)
+    public int set_ints(int[] ns, int offset)
     {
-        if ((n.length != 2) | dlc != 8)
+        if (ns.length * 4 + offset > 8)
         {
-            val = -1;   //  should only be used to insert two ints
+            return - 1;
         } else
         {
-            pb[ 6] = (byte) ( n[0]       );
-            pb[ 7] = (byte) ((n[0] >>  8));
-            pb[ 8] = (byte) ((n[0] >> 16));
-            pb[ 9] = (byte) ((n[0] >> 24));
-            pb[10] = (byte) ( n[1]       );
-            pb[11] = (byte) ((n[1] >>  8));
-            pb[12] = (byte) ((n[1] >> 16));
-            pb[13] = (byte) ((n[1] >> 24));
-            val = 0;
+            for (int i = 0; i < ns.length; i++)
+            {
+                int i4o = i * 4 + offset;
+                pb[6 + i4o] = (byte) (ns[i]);
+                pb[7 + i4o] = (byte) (ns[i] >> 8);
+                pb[8 + i4o] = (byte) (ns[i] >> 16);
+                pb[9 + i4o] = (byte) (ns[i] >> 24);
+            }
+            dlc = Math.max(dlc, ns.length * 4 + offset);
+            return 0;
         }
     }
 
@@ -562,55 +564,97 @@ public class CanCnvt
      */
     public void set_long(long lng)
     {
-        if (dlc != 8)
+        pb[ 6] = (byte) (lng);
+        pb[ 7] = (byte) ((lng >> 8));
+        pb[ 8] = (byte) ((lng >> 16));
+        pb[ 9] = (byte) ((lng >> 24));
+        pb[10] = (byte) ((lng >> 32));
+        pb[11] = (byte) ((lng >> 40));
+        pb[12] = (byte) ((lng >> 48));
+        pb[13] = (byte) ((lng >> 56));
+        dlc = 8;
+        return 0;
+    }
+
+ public int set_short(short n, int offset)
+    {
+        if (offset > 6 )
         {
-            val = -1;
+            return -1;
         } else
         {
-            pb[ 6] = (byte) (lng        );
-            pb[ 7] = (byte) ((lng >>  8));
-            pb[ 8] = (byte) ((lng >> 16));
-            pb[ 9] = (byte) ((lng >> 24));
-            pb[10] = (byte) ((lng >> 32));
-            pb[11] = (byte) ((lng >> 40));
-            pb[12] = (byte) ((lng >> 48));
-            pb[13] = (byte) ((lng >> 56));
-            val = 0;
+            pb[6 + offset] = (byte) (n);
+            pb[7 + offset] = (byte) ((n >> 8));
+            dlc = Math.max(dlc, offset + 2);
+            return 0;
         }
     }
 
     /**
-     * @param Short[] s holds shorts to be stored in payload, little endian
-     * Convert shorts to payload byte array, little endian
-     * @return false: array length doesn't accommodate payload count
+     * @param ns  Big endian int. Convert to payload byte array little endian
      */
-    private void set_nshort(Short[] s)
+    public int set_shorts(short[] ns, int offset)
     {
-        int x;
-        x = s.length;
-        if (x == 0)
-        {    // JIC
-            dlc = 0;
-            val = -1; return; // Set payload size and return
-        }
-        if (x < 0)
+        if (ns.length * 2 + offset > 8)
         {
-            val = -2; return;    // Should not be possible
-        }
-        if (x > 4)
+            return - 1;
+        } else
         {
-            val = -3; return;    // Oops!
+            for (int i = 0; i < ns.length; i++)
+            {
+                int i2o = i * 2 + offset;
+                pb[6 + i2o] = (byte) (ns[i]);
+                pb[7 + i2o] = (byte) (ns[i] >> 8);
+                pb[8 + i2o] = (byte) (ns[i] >> 16);
+                pb[9 + i2o] = (byte) (ns[i] >> 24);
+            }
+            dlc = Math.max(dlc, ns.length * 2 + offset);
+            return 0;
         }
-        for (int i = 0; i < x; x += 1)
-        {
-            pb[((2 * i) + 6)] = (byte) ((s[i] >>  8));
-            pb[((2 * i) + 7)] = (byte) ( s[i] & 0xff);
-        }
-        dlc = (x * 2);  // Set payload size
-        val = 0; return;
     }
-    public void valerr(){
-        if (val != 0) System.out.format("CanCnvt val err: %d\n",val);
+    
+     public int set_byte(byte n, int offset)
+    {
+        if (offset > 7 )
+        {
+            return -1;
+        } else
+        {
+            pb[6 + offset] = (byte) (n);
+            dlc = Math.max(dlc, offset + 1);
+            return 0;
+        }
+    }
+
+    /**
+     * @param ns  Big endian int. Convert to payload byte array little endian
+     */
+    public int set_bytes(byte[] ns, int offset)
+    {
+        if (ns.length + offset > 8)
+        {
+            return - 1;
+        } else
+        {
+            for (int i = 0; i < ns.length; i++)
+            {
+                int ipo = i + offset;
+                pb[6 + ipo] = (byte) (ns[i]);
+            }
+            dlc = Math.max(dlc, ns.length + offset);
+            return 0;
+        }
+    }
+    
+    
+    
+
+    public void valerr()
+    {
+        if (val != 0)
+        {
+            System.out.format("CanCnvt val err: %d\n", val);
+        }
     }
 
 }
