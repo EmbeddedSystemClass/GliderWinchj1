@@ -114,14 +114,16 @@ public class CanDemo {
 //            nta = can1.get_2int();     // Convert payload to two ints
             nta = cvt1.get_ints(0, 2);  //  Convert payload to two ints
             eng[0] = nta[0];   // Save the values if we want it later
-            eng[1] = nta[1]; 
-int z0; int z1;
-z0 = cvt1.get_int(0);
-cvt1.valerr();
-if (z0 != eng[0]){System.out.format("z0:%08X " + "z1: %08X\n",z0, eng[0]);}
-z1 = cvt1.get_int(4);
-cvt1.valerr();
-if (z1 != eng[1]){System.out.format("z0:%08X " + "z1: %08X\n",z1, eng[1]);}
+            eng[1] = nta[1];
+            
+            /* Check that get_int returns the same as get_ints */
+            int z0; int z1;
+            z0 = cvt1.get_int(0);
+            cvt1.valerr();
+            if (z0 != eng[0]){System.out.format("z0:%08X " + "z1: %08X\n",z0, eng[0]);}
+            z1 = cvt1.get_int(4);
+            cvt1.valerr();
+            if (z1 != eng[1]){System.out.format("z0:%08X " + "z1: %08X\n",z1, eng[1]);}
 
 //            System.out.format("P0:%08x " + "P1:%08x " + "%s\n", eng[0], eng[1], msg);
     }
