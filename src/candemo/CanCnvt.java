@@ -74,14 +74,12 @@ public class CanCnvt
      param   : int m: Number of bytes in array to use in computation
      return  : computed checksum 
      ************************************************************************ */
-
     private byte checksum(int m)
     {
-        /* Convert pairs of ascii/hex chars to a binary byte */
         int chktot = 0xa5a5;    // Initial value for computing checksum
         for (int i = 0; i < m; i++)
         {
-            chktot += (pb[i] & 0xff);  // Build total (int) from byte array
+            chktot += (pb[i] & 0xff);// Build total (int) from signed byte array
         }
         /* Add in carries and carry from adding carries */
         chktot += (chktot >> 16); // Add carries from low half word
@@ -94,11 +92,15 @@ public class CanCnvt
     /**
      * Check message for errors and Convert incoming ascii/hex CAN msg to an
      * array of bytes plus assemble the bytes comprising CAN ID into an int.
-     *
-     * @param msg msg = String with ascii/hex of a CAN msg
-     * @return * Return: 0 = OK; -1 = message too short (less than 14) -2 =
-     * message too long (greater than 30) -3 = number of bytes not even -4 =
-     * payload count is negative or greater than 8 -5 = checksum error
+     * @param msg: String with CAN message
+     * @return codes:
+     *  0 = OK; 
+     * -1 = message too short (less than 14) 
+     * -2 = message too long (greater than 30) 
+     * -3 = number of bytes not even 
+     * -4 = payload count is negative or greater than 8 
+     * -5 = checksum error
+     * -6 = non-ascii/hex char in input
      */
     public int convert_msgtobin(String msg)
     {
@@ -481,10 +483,11 @@ public class CanCnvt
     }
 
     /**
-     * Prepare CAN msg: Convert the array pb[] to hex and add checksum The
-     * binary array pb[] is expected to have been set up.
+     * Prepare CAN msg: Convert the array pb[] to hex and add checksum 
+     * The binary array pb[] is expected to have been set up.
      *
      * @return String with ascii/hex in ready to send
+     *   return = null for error (dlc length out-of-range)
      */
     public String msg_prep()
     {  // Convert payload bytes from byte array
@@ -519,9 +522,11 @@ public class CanCnvt
     }
 
     /**
-     * @param big endian int to be stored in byte array little endian Convert to
-     * payload byte array little endian offset
-     * *********************************************************************
+     * Big endian int to be stored in byte array little endian 
+     * Convert to payload byte array, little endian
+     * @param n = int to be converted
+     * @param offset = array index into payload (0 - 7)
+     * @return 0 = OK; -1 =  error
      */
     public int set_int(int n, int offset)
     {
@@ -540,7 +545,11 @@ public class CanCnvt
     }
 
     /**
-     * @param ns  Big endian int. Convert to payload byte array little endian
+     * Big endian ints  to be stored in byte array little endian 
+     * Convert to payload byte array little endian offset
+     * @param ns = int array to be converted
+     * @param offset = array index into payload (0 - 7)
+     * @return 0 = OK; -1 =  error
      */
     public int set_ints(int[] ns, int offset)
     {
@@ -563,8 +572,11 @@ public class CanCnvt
     }
 
     /**
-     * @param Big endian long. Convert long to payload byte array little endian
-     *
+     * Big endian long to be stored in byte array little endian 
+     * Convert to payload byte array little endian offset
+     * dlc is set to 8;
+     * @param lng = long to be converted
+     * @return 0 = OK; -1 =  error
      * *********************************************************************
      */
     public int set_long(long lng)
@@ -581,7 +593,13 @@ public class CanCnvt
         return 0;
     }
 
- public int set_short(int n, int offset)
+    /**
+     *
+     * @param n value to be converted: int for holding an unsigned short.
+     * @param offset payload array offset (0 - 7)
+     * @return 0 = OK; -1 = error;
+     */
+    public int set_short(int n, int offset)
     {
         if (offset > 6 )
         {
@@ -596,7 +614,10 @@ public class CanCnvt
     }
 
     /**
-     * @param ns  Big endian int. Convert to payload byte array little endian
+     * Convert int array into payload shorts
+     * @param ns  int array: value to be converted: int for holding an unsigned short
+     * @param offset payload array offset (0 - 7)
+     * @return 0 = OK; -1 = error;
      */
     public int set_shorts(int[] ns, int offset)
     {
@@ -617,8 +638,14 @@ public class CanCnvt
             return 0;
         }
     }
-    
-     public int set_byte(int n, int offset)
+
+    /**
+     * Place a byte into the payload
+     * @param n low order byte of 'n' is placed
+     * @param offset payload array offset (0 - 7)
+     * @return 0 = OK; -1 = error;
+     */
+    public int set_byte(int n, int offset)
     {
         if (offset > 7 )
         {
@@ -632,7 +659,10 @@ public class CanCnvt
     }
 
     /**
-     * @param ns  Big endian int. Convert to payload byte array little endian
+     * Place bytes from an array into payload
+     * @param ns  Low order byte of each int in array 
+     * @param offset payload array offset (0 - 7)
+     * @return 0 = OK; -1 = error;
      */
     public int set_bytes(int[] ns, int offset)
     {
@@ -653,7 +683,7 @@ public class CanCnvt
     
     
     
-
+    /* Debugging code: calling routine calls this to check 'val' */
     public void valerr()
     {
         if (val != 0)
