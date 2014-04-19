@@ -562,7 +562,7 @@ public class CanCnvt
      *
      * *********************************************************************
      */
-    public void set_long(long lng)
+    public int set_long(long lng)
     {
         pb[ 6] = (byte) (lng);
         pb[ 7] = (byte) ((lng >> 8));
@@ -576,7 +576,7 @@ public class CanCnvt
         return 0;
     }
 
- public int set_short(short n, int offset)
+ public int set_short(int n, int offset)
     {
         if (offset > 6 )
         {
@@ -593,7 +593,7 @@ public class CanCnvt
     /**
      * @param ns  Big endian int. Convert to payload byte array little endian
      */
-    public int set_shorts(short[] ns, int offset)
+    public int set_shorts(int[] ns, int offset)
     {
         if (ns.length * 2 + offset > 8)
         {
@@ -613,7 +613,7 @@ public class CanCnvt
         }
     }
     
-     public int set_byte(byte n, int offset)
+     public int set_byte(int n, int offset)
     {
         if (offset > 7 )
         {
@@ -629,7 +629,7 @@ public class CanCnvt
     /**
      * @param ns  Big endian int. Convert to payload byte array little endian
      */
-    public int set_bytes(byte[] ns, int offset)
+    public int set_bytes(int[] ns, int offset)
     {
         if (ns.length + offset > 8)
         {
